@@ -1,0 +1,42 @@
+# language: yaml
+name: SAST Check
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+    branches:
+      - main
+      - develop
+
+jobs:
+  sast:
+    name: Static Application Security Testing
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Check out code
+      uses: actions/checkout@v3
+
+    - name: Set up Python (ou linguagem do seu projeto)
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    - name: Install SAST tool
+      run: |
+        # Exemplo: instalando bandit para projetos Python
+        pip install bandit
+
+    - name: Run SAST
+      run: |
+        # Executando análise de segurança em todo o código fonte
+        bandit -r .
+
+    - name: Upload SAST artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: sast-report
+        path: bandit-output.xml
