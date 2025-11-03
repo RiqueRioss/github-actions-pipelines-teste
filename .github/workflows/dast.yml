@@ -1,0 +1,53 @@
+name: DAST Test
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  dast:
+    name: Executar DAST
+    runs-on: ubuntu-latest
+
+    steps:
+    # Passo 1: Checar código
+    - name: Checkout repository
+      uses: actions/checkout@v3
+
+    # Passo 2: Configurar Python
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.11'
+
+    # Passo 3: Instalar dependências
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install -r requirements.txt
+
+    # Passo 4: Executar aplicação (exemplo com FastAPI)
+    - name: Run application
+      run: |
+        nohup uvicorn main:app --host 0.0.0.0 --port 8000 &
+        sleep 10  # Espera a aplicação iniciar
+
+    # Passo 5: Instalar OWASP ZAP
+    - name: Install OWASP ZAP
+      run: |
+        sudo apt-get update
+        sudo apt-get install -y zaproxy
+
+    # Passo 6: Executar scan DAST
+    - name: Run DAST Scan
+      run: |
+        zap-baseline.py -t http://127.0.0.1:8000 -r zap_report.html
+
+    # Passo 7: Upload do relatório
+    - name: Upload DAST report
+      uses: actions/upload-artifact@v4
+      with:
+        name: dast-report
+        path: zap_report.html
