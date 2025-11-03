@@ -34,3 +34,62 @@ jobs:
         run: |
           echo Add other actions to build,
           echo test, and deploy your project.
+          
+  zap_scan:
+    runs-on: ubuntu-latest
+    name: Executar varredura DAST na aplicação web
+
+    steps:
+    - name: Checkout do código fonte
+      uses: actions/checkout@v4
+
+    # Passo opcional: Subir sua aplicação para que o ZAP possa testá-la.
+    # Esta é a parte crucial do DAST: a aplicação precisa estar rodando.
+    # Exemplo usando Docker Compose (adapte conforme sua aplicação):
+    # - name: Subir aplicação
+    #   run: docker-compose up -d
+
+    # Passo 3: Executar a varredura DAST com OWASP ZAP
+    - name: Executar varredura OWASP ZAP Baseline
+      uses: zaproxy/action-baseline@v0.14.0 # Use a versão mais recente
+      with:
+        # Define a URL alvo da sua aplicação EM EXECUÇÃO
+        # Se estiver rodando localmente no runner, use http://localhost:PORTA
+        target: 'http://localhost:3000' 
+        # Define o nível de alerta mínimo para falhar o job (Opcional, por padrão é High)
+        fail_action: true 
+        # Gera o relatório em formato SARIF para visualização no GitHub Security tab
+        issue_title: 'OWASP ZAP DAST Report'
+        # Define o nome do arquivo de relatório SARIF
+        sarif_filename: 'zap_report.sarif'
+        # Opções adicionais (ex: '-a' para escanear endpoints automaticamente)
+        cmd_options: '-a'
+
+    # Passo 4: Fazer upload dos resultados SARIF para o GitHub Code Scanning
+    - name: Uploadar resultados SARIF para o GitHub
+      uses: github/codeQL-action/upload-sarif@v3
+      with:
+        sarif_file: zap_report.sarif
+        
+  analyze:
+    name: Analyze Code
+    runs-on: ubuntu-latest
+
+    permissions:
+      actions: read
+      contents: read
+      security-events: write # Required to upload scan results
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    # Initializes the CodeQL tool for the given languages
+    - name: Initialize CodeQL
+      uses: github/codeql-action/init@v4
+      with:
+        languages: python # Specify the language(s) of your project
+
+    # Performs the CodeQL analysis
+    - name: Perform CodeQL Analysis
+      uses: github/codeql-action/analyze@v4
